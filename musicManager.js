@@ -3,10 +3,10 @@ const { Connectors } = require('shoukaku');
 
 module.exports = (client) => {
     const nodes = [{
-        name: 'Toddy US/UK',
-        url: '69.30.219.179:1038',
-        auth: 'yothisnodeishostedbymushroom0162',
-        secure: false
+        name: '',
+        url: 'lavalink_v4.muzykant.xyz:443',
+        auth: 'https://discord.gg/v6sdrD9kPh',
+        secure: true
     }];
 
     const kazagumo = new Kazagumo({
