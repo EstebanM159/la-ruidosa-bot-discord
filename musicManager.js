@@ -26,9 +26,9 @@ module.exports = (client) => {
     kazagumo.on('error', (node, error) => {
         console.error(`Error en nodo ${node.name}:`, error);
     });
-    // Escuchar errores de Shoukaku directamente (previene el crash)
+    // Escuchar errores de Shoukaku directamente (previene el crash) 
         kazagumo.shoukaku.on('error', (name, error) => {
-            console.error(`🛑 [Shoukaku Error] Nodo: ${name} — ${error?.message || error}`);
+            console.error(`🛑 [Shoukaku Error] Nodo: ${name} — Mensaje?:${error?.message } - Error: ${error}`);
         });
 
         kazagumo.shoukaku.on('close', (name, code, reason) => {

@@ -44,7 +44,6 @@ client.on('interactionCreate', async (interaction) => {
         }
     }
 });
-
 client.kazagumo.on('playerStart', (player, track) => {
     console.log(`*Reproduciendo*: \`${track.title}\``);
 });
@@ -65,6 +64,32 @@ client.on('voiceStateUpdate', (oldState, newState) => {
 
     currentPlayer.destroy();
 });
+// Bot desconectado del server
+client.on('voiceStateUpdate', (oldState, newState) => {
+  if (
+    oldState.member.id === client.user.id &&
+    oldState.channelId && !newState.channelId
+  ) {
+    const guildId = oldState.guild.id;
+    const player = client.kazagumo.getPlayer(guildId);
+
+    if (player) {
+      try {
+        player.destroy(); // Intentamos destruir solo si existe
+      } catch (err) {
+        console.log('Player ya estaba destruido o hubo un error:', err.message);
+      }
+    }
+
+    const textChannel = client.textChannels?.get(guildId);
+    if (textChannel) {
+      textChannel.send('🔌 Me desconectaron del canal de voz. La reproducción fue detenida.');
+    }
+
+    client.textChannels?.delete(guildId);
+  }
+});
+
 
 // AFK
 
