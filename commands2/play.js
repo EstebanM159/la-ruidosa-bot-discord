@@ -12,6 +12,7 @@ module.exports = {
     async execute(interaction, client) {
         const { options, member, guild } = interaction;
         const query = options.getString('query');
+
         const voiceChannel = member.voice.channel;
         if (!voiceChannel) {
             return interaction.reply({ content: '❌ Debes estar en un canal de voz.', ephemeral: true });

@@ -22,7 +22,6 @@ client.commands = new Collection()
 // Inicializar el cliente de música
 require('./commandHandler2.js')(client)
 require('./musicManager.js')(client)
-// require('./musicManager2.js')(client)
 client.on('ready', () => {
   console.log(`✅ Bot iniciado como ${client.user.tag}`);
 });
@@ -44,9 +43,12 @@ client.on('interactionCreate', async (interaction) => {
         }
     }
 });
+
 client.kazagumo.on('playerStart', (player, track) => {
     console.log(`*Reproduciendo*: \`${track.title}\``);
 });
+
+
 
 // Mapa para controlar timeouts de AFK
 
@@ -100,19 +102,27 @@ async function safePlayerDestroy(guildId, message) {
     }
 }
 
-// Manejo de AFK mejorado
 client.kazagumo.on('playerEnd', (player) => {
     const guildId = player.guildId;
+    
+    // Verificar si hay canciones en cola
+    if (player.queue.size > 0) {
+        return; // No desconectar si hay más canciones
+    }
 
-    // Cancelar timeout anterior si existe
+    // Cancelar timeout anterior
     if (afkTimeouts.has(guildId)) {
         clearTimeout(afkTimeouts.get(guildId));
     }
 
-    // Configurar nuevo timeout (2 minutos)
+    // Configurar nuevo timeout
     const timeout = setTimeout(async () => {
-        await safePlayerDestroy(guildId, '🕒 Me desconecté por inactividad.');
-    }, 120000);
+        const currentPlayer = client.kazagumo.getPlayer(guildId);
+        if (currentPlayer && !currentPlayer.playing && currentPlayer.queue.size === 0) {
+            await safePlayerDestroy(guildId, '🕒 Me desconecté por inactividad.');
+        }
+    }, 120000); // 2 minutos
+
     afkTimeouts.set(guildId, timeout);
 });
 

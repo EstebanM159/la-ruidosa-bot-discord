@@ -6,17 +6,11 @@ module.exports = {
         .setDescription('Detiene la música y limpia la cola'),
     async execute(interaction, client) {
         const player = client.kazagumo.getPlayer(interaction.guild.id);
-        
-        // Caso 1: No hay reproductor (bot no conectado)
         if (!player) {
-            return interaction.reply({ 
-                content: '❌ No hay música reproduciéndose.', 
-                ephemeral: true 
-            });
+            return interaction.reply({ content: '❌ No hay música reproduciéndose.', ephemeral: true });
         }
-
-        // Caso 2: Hay reproductor, pero no hay canción activa
-        if (!player.playing && player.queue.isEmpty()) {
+        
+        if (!player.playing && player.queue.size === 0) {
             return interaction.reply({ 
                 content: 'ℹ️ No hay música en reproducción ni en la cola.', 
                 ephemeral: true 

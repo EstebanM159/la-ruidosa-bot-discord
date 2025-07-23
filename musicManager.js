@@ -22,7 +22,20 @@ module.exports = (client) => {
         const channel = client.channels.cache.get(player.textId);
         if (channel) channel.send(`🎶 **Reproduciendo**: \`${track.title}\``);
     });
-
+    // En musicManager.js, después de crear la instancia de Kazagumo
+kazagumo.shoukaku.on('ready', (name) => {
+    console.log(`✅ Nodo ${name} listo!`);
+    // Reconectar reproductores activos
+    for (const [guildId, player] of kazagumo.players) {
+        const voiceChannel = client.channels.cache.get(player.voiceId);
+        if (voiceChannel) {
+            player.connect();
+            if (player.paused) {
+                player.pause(false); // Reanudar si estaba pausado
+            }
+        }
+    }
+});
     kazagumo.on('error', (node, error) => {
         console.error(`Error en nodo ${node.name}:`, error);
     });
