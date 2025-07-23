@@ -48,72 +48,72 @@ client.kazagumo.on('playerStart', (player, track) => {
     console.log(`*Reproduciendo*: \`${track.title}\``);
 });
 
-// Verifica que no haya nadie en el canal de voz
-client.on('voiceStateUpdate', (oldState, newState) => {
-    const currentPlayer = client.kazagumo.players.get(oldState.guild.id);
-    if (!currentPlayer) return;
+// Mapa para controlar timeouts de AFK
 
-    const channel = oldState.guild.channels.cache.get(currentPlayer.voiceId);
-    if (!channel || channel.members.filter(m => !m.user.bot).size > 0) return;
-
-    // No hay más humanos en el canal
-    const textChannel = client.textChannels?.get(oldState.guild.id);
-    if (textChannel) {
-        textChannel.send('👋 Me desconecté porque no quedaban usuarios en el canal de voz.');
+client.on('voiceStateUpdate', async (oldState, newState) => {
+    // Caso 1: Bot fue desconectado manualmente
+    if (oldState.member?.id === client.user.id && oldState.channelId && !newState.channelId) {
+        const guildId = oldState.guild.id;
+        await safePlayerDestroy(guildId, '🔌 Me desconectaron del canal de voz. La reproducción fue detenida.');
+        return;
     }
 
-    currentPlayer.destroy();
-});
-// Bot desconectado del server
-client.on('voiceStateUpdate', (oldState, newState) => {
-  if (
-    oldState.member.id === client.user.id &&
-    oldState.channelId && !newState.channelId
-  ) {
-    const guildId = oldState.guild.id;
-    const player = client.kazagumo.getPlayer(guildId);
+    // Caso 2: Usuarios humanos abandonan el canal
+    const player = client.kazagumo.players.get(oldState.guild.id);
+    if (!player) return;
 
-    if (player) {
-      try {
-        player.destroy(); // Intentamos destruir solo si existe
-      } catch (err) {
-        console.log('Player ya estaba destruido o hubo un error:', err.message);
-      }
-    }
+    const voiceChannel = oldState.guild.channels.cache.get(player.voiceId);
+    if (!voiceChannel) return;
 
-    const textChannel = client.textChannels?.get(guildId);
-    if (textChannel) {
-      textChannel.send('🔌 Me desconectaron del canal de voz. La reproducción fue detenida.');
-    }
+    // Verificar si quedan usuarios no bots
+    const humansLeft = voiceChannel.members.some(m => !m.user.bot);
+    if (humansLeft) return;
 
-    client.textChannels?.delete(guildId);
-  }
+    // Desconexión automática
+    await safePlayerDestroy(oldState.guild.id, '👋 Me desconecté porque no quedaban usuarios en el canal de voz.');
 });
 
+// Función segura para destruir players
+async function safePlayerDestroy(guildId, message) {
+    try {
+        const player = client.kazagumo.getPlayer(guildId);
+        if (!player) return;
 
-// AFK
-
-client.kazagumo.on('playerEnd', (player) => {
-    console.log(`Reproducción terminada en ${player.guildId}`);
-
-    // Si ya hay timeout pendiente, no hacer nada
-    if (afkTimeouts.has(player.guildId)) return;
-
-    const timeout = setTimeout(() => {
-        const currentPlayer = client.kazagumo.players.get(player.guildId);
-        if (currentPlayer && !currentPlayer.queue.current) {
-            const textChannel = client.textChannels?.get(player.guildId);
-            if (textChannel) {
-                textChannel.send('🕒 Me desconecté por inactividad.');
-            }
-            currentPlayer.destroy(); // Desconectar al bot
-            // console.log(`⏰ Bot se desconectó por inactividad en ${player.guildId}`);
+        // Cancelar timeout de AFK si existe
+        if (afkTimeouts.has(guildId)) {
+            clearTimeout(afkTimeouts.get(guildId));
+            afkTimeouts.delete(guildId);
         }
-        afkTimeouts.delete(player.guildId); // Limpiar referencia
-    }, 120000); // 2 minutos
 
-    afkTimeouts.set(player.guildId, timeout);
+        // Verificar si el player ya está destruido
+        if (player.state === 'DESTROYED') return;
+
+        await player.destroy();
+        
+        const textChannel = client.textChannels?.get(guildId);
+        if (textChannel) textChannel.send(message);
+
+    } catch (err) {
+        if (err.code !== 1) { // Ignorar error "Player is already destroyed"
+            console.error(`Error en safePlayerDestroy (${guildId}):`, err);
+        }
+    }
+}
+
+// Manejo de AFK mejorado
+client.kazagumo.on('playerEnd', (player) => {
+    const guildId = player.guildId;
+
+    // Cancelar timeout anterior si existe
+    if (afkTimeouts.has(guildId)) {
+        clearTimeout(afkTimeouts.get(guildId));
+    }
+
+    // Configurar nuevo timeout (2 minutos)
+    const timeout = setTimeout(async () => {
+        await safePlayerDestroy(guildId, '🕒 Me desconecté por inactividad.');
+    }, 120000);
+    afkTimeouts.set(guildId, timeout);
 });
-
 
 client.login(process.env.DISCORD_TOKEN);
