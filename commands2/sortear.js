@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('discord.js');
-
+// prueba
 module.exports = {
     data: new SlashCommandBuilder()
         .setName('sortear')

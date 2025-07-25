@@ -1,11 +1,6 @@
 require('dotenv').config();
 const { Client, GatewayIntentBits,Collection } = require('discord.js');
 const afkTimeouts = new Map(); // ← Colocar esto al inicio del archivo, si no lo hiciste aún
-const express = require('express');
-const app = express();
-
-app.get('/', (req, res) => res.send('Bot activo.'));
-app.listen(3000, () => console.log('🌐 Puerto web activo para Render'));
 
 const client = new Client({
   intents: [
